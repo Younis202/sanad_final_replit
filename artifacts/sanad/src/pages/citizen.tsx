@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Layout } from "@/components/layout";
 import { Card, Input, Button, PageHeader, Badge } from "@/components/shared";
 import { useGetPatientByNationalId } from "@workspace/api-client-react";
-import { Bell, Calendar, FileText, Activity } from "lucide-react";
+import { Bell, Calendar, FileText, Activity, User } from "lucide-react";
 import { format } from "date-fns";
 
 export default function CitizenPortal() {
