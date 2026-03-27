@@ -2,8 +2,15 @@ import React, { useState } from "react";
 import { Layout } from "@/components/layout";
 import { Card, Input, Button, PageHeader, Badge } from "@/components/shared";
 import { useGetPatientByNationalId } from "@workspace/api-client-react";
-import { Bell, Calendar, FileText, Activity, User } from "lucide-react";
+import { Bell, Calendar, FileText, Activity, User, Zap } from "lucide-react";
 import { format } from "date-fns";
+
+const DEMO_PATIENTS = [
+  { id: "1000000004", name: "Nora Al-Shehri" },
+  { id: "1000000001", name: "Mohammed Al-Qahtani" },
+  { id: "1000000010", name: "Maryam Al-Anzi" },
+  { id: "1000000002", name: "Fatima Al-Zahrani" },
+];
 
 export default function CitizenPortal() {
   const [loginId, setLoginId] = useState("");
@@ -34,11 +41,29 @@ export default function CitizenPortal() {
               <Input 
                 value={loginId}
                 onChange={e => setLoginId(e.target.value)}
-                placeholder="Enter National ID" 
+                placeholder="Enter National ID (e.g. 1000000004)" 
                 className="text-center text-lg"
               />
               <Button type="submit" variant="accent" className="w-full">Secure Login</Button>
             </form>
+            
+            <div className="mt-6 pt-6 border-t border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
+                <Zap className="w-3 h-3" /> Demo Patients
+              </p>
+              <div className="space-y-2">
+                {DEMO_PATIENTS.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => { setLoginId(p.id); setIsLoggedIn(true); }}
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-background hover:border-accent/60 hover:bg-accent/5 transition-all text-sm flex items-center gap-3"
+                  >
+                    <span className="font-mono font-bold text-muted-foreground">{p.id}</span>
+                    <span className="font-medium">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </Card>
         </div>
       </Layout>

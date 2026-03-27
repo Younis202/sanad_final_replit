@@ -1,9 +1,17 @@
 import React, { useState } from "react";
-import { Search, AlertTriangle, Droplet, Pill, FileWarning, PhoneCall } from "lucide-react";
+import { Search, AlertTriangle, Droplet, Pill, FileWarning, PhoneCall, Activity, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout";
 import { Card, Input, Button, Badge, PageHeader } from "@/components/shared";
 import { useEmergencyLookup } from "@workspace/api-client-react";
+
+const DEMO_PATIENTS = [
+  { id: "1000000003", name: "Khalid Al-Rashidi", dot: "bg-destructive" },
+  { id: "1000000005", name: "Abdullah Al-Dosari", dot: "bg-orange-500" },
+  { id: "1000000023", name: "Yousef Al-Otaibi", dot: "bg-destructive" },
+  { id: "1000000001", name: "Mohammed Al-Qahtani", dot: "bg-amber-500" },
+  { id: "1000000004", name: "Nora Al-Shehri", dot: "bg-green-500" },
+];
 
 export default function EmergencyPage() {
   const [nationalId, setNationalId] = useState("");
@@ -28,7 +36,7 @@ export default function EmergencyPage() {
         subtitle="Instantly access life-saving critical patient data."
       />
 
-      <Card className="p-2 mb-8 bg-card border-2 focus-within:border-destructive/50 transition-colors">
+      <Card className="p-2 mb-4 bg-card border-2 focus-within:border-destructive/50 transition-colors">
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-6 h-6" />
@@ -36,7 +44,7 @@ export default function EmergencyPage() {
               autoFocus
               value={nationalId}
               onChange={(e) => setNationalId(e.target.value)}
-              placeholder="Scan or enter National ID (e.g. 1000000000)" 
+              placeholder="Scan or enter National ID (e.g. 1000000003)" 
               className="pl-14 h-16 text-2xl font-mono tracking-widest border-0 ring-0 focus-visible:ring-0 shadow-none bg-transparent"
             />
           </div>
@@ -45,6 +53,26 @@ export default function EmergencyPage() {
           </Button>
         </form>
       </Card>
+
+      {/* Demo Quick-Access */}
+      <div className="mb-8">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+          <Zap className="w-3 h-3" /> Quick Demo Patients
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {DEMO_PATIENTS.map(p => (
+            <button
+              key={p.id}
+              onClick={() => { setNationalId(p.id); setSubmittedId(p.id); }}
+              className="px-4 py-2 rounded-xl border border-border bg-card hover:border-destructive/60 hover:bg-destructive/5 transition-all text-sm font-mono flex items-center gap-2 group"
+            >
+              <span className={`w-2 h-2 rounded-full ${p.dot}`}></span>
+              <span className="font-bold tracking-wide">{p.id}</span>
+              <span className="text-muted-foreground group-hover:text-foreground transition-colors">{p.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {isLoading && (
         <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
