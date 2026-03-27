@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Shield, Activity, Stethoscope, AlertCircle, Syringe, Clock, User as UserIcon, Pill, Zap } from "lucide-react";
+import { Search, Shield, Activity, Stethoscope, AlertCircle, Syringe, Clock, User as UserIcon, Pill } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { Card, Input, Button, Badge, PageHeader } from "@/components/shared";
 import { 
@@ -9,15 +9,6 @@ import {
   usePrescribeMedication 
 } from "@workspace/api-client-react";
 import { format } from "date-fns";
-
-const DEMO_PATIENTS = [
-  { id: "1000000001", name: "Mohammed Al-Qahtani", dot: "bg-amber-500" },
-  { id: "1000000003", name: "Khalid Al-Rashidi", dot: "bg-destructive" },
-  { id: "1000000005", name: "Abdullah Al-Dosari", dot: "bg-orange-500" },
-  { id: "1000000010", name: "Maryam Al-Anzi", dot: "bg-purple-500" },
-  { id: "1000000023", name: "Yousef Al-Otaibi", dot: "bg-destructive" },
-  { id: "1000000004", name: "Nora Al-Shehri", dot: "bg-green-500" },
-];
 
 export default function DoctorDashboard() {
   const [searchId, setSearchId] = useState("");
@@ -52,28 +43,6 @@ export default function DoctorDashboard() {
           <Button type="submit">Search</Button>
         </form>
       </div>
-
-      {/* Demo Quick-Access */}
-      {!patient && (
-        <div className="mb-6">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-            <Zap className="w-3 h-3" /> Quick Demo Patients
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {DEMO_PATIENTS.map(p => (
-              <button
-                key={p.id}
-                onClick={() => { setSearchId(p.id); setPatientId(p.id); }}
-                className="px-4 py-2 rounded-xl border border-border bg-card hover:border-primary/60 hover:bg-primary/5 transition-all text-sm font-mono flex items-center gap-2 group"
-              >
-                <span className={`w-2 h-2 rounded-full ${p.dot}`}></span>
-                <span className="font-bold tracking-wide">{p.id}</span>
-                <span className="text-muted-foreground group-hover:text-foreground transition-colors">{p.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {isLoading && <div className="text-center py-20 text-muted-foreground animate-pulse">Loading patient record...</div>}
 
