@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, AlertTriangle, Droplet, Pill, FileWarning, PhoneCall } from "lucide-react";
+import { Search, AlertTriangle, Droplet, Pill, FileWarning, PhoneCall, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout";
 import { Card, Input, Button, Badge, PageHeader } from "@/components/shared";
