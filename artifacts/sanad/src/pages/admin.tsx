@@ -2,17 +2,20 @@ import React from "react";
 import { Layout } from "@/components/layout";
 import { PageHeader, Card, CardHeader, CardTitle, CardBody, KpiCard, Badge, AlertBanner } from "@/components/shared";
 import { useGetAdminStats, useGetPopulationHealth } from "@workspace/api-client-react";
-import { Users, Activity, ShieldAlert, Building, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, Activity, ShieldAlert, Building, TrendingUp, AlertTriangle, PieChart as PieIcon, Globe } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line,
+  PieChart, Pie, Cell, LineChart, Line, Legend,
 } from "recharts";
 
 const COLORS = ["#1d4ed8", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe", "#eff6ff"];
+const RISK_COLORS = { Low: "#22c55e", Medium: "#f59e0b", High: "#f97316", Critical: "#ef4444" };
 
 export default function AdminDashboard() {
-  const { data: stats, isLoading: statsLoading } = useGetAdminStats();
+  const { data: statsRaw, isLoading: statsLoading } = useGetAdminStats();
   const { data: popHealth, isLoading: healthLoading } = useGetPopulationHealth();
+
+  const stats = statsRaw as any;
 
   if (statsLoading || healthLoading) {
     return (
@@ -27,7 +30,6 @@ export default function AdminDashboard() {
 
   return (
     <Layout role="admin">
-      {/* Critical alert strip (like screenshot 346) */}
       {stats && stats.highRiskPatients > 0 && (
         <AlertBanner variant="warning">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -197,6 +199,83 @@ export default function AdminDashboard() {
             </CardBody>
           </Card>
 
+          {/* Risk Distribution */}
+          {stats?.riskDistribution && (
+            <Card className="col-span-5">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <PieIcon className="w-4 h-4 text-amber-600" />
+                  <CardTitle>Patient Risk Distribution</CardTitle>
+                </div>
+                <Badge variant="warning">{stats.highRiskPatients} high/critical</Badge>
+              </CardHeader>
+              <CardBody>
+                <div className="h-52">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats.riskDistribution}
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        dataKey="count"
+                        nameKey="level"
+                        label={({ level, percent }) => percent > 0.05 ? `${level} ${(percent * 100).toFixed(0)}%` : ""}
+                        labelLine={false}
+                      >
+                        {stats.riskDistribution.map((entry: any, i: number) => (
+                          <Cell key={i} fill={RISK_COLORS[entry.level as keyof typeof RISK_COLORS] || "#94a3b8"} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip
+                        formatter={(value: any, name: any) => [`${value} patients`, name]}
+                        contentStyle={{ borderRadius: "12px", border: "1px solid #E2E8F0", fontSize: 12 }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {stats.riskDistribution.map((d: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-2 bg-secondary rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: RISK_COLORS[d.level as keyof typeof RISK_COLORS] }} />
+                        <span className="text-xs font-medium text-foreground">{d.level}</span>
+                      </div>
+                      <span className="text-xs font-bold text-muted-foreground tabular-nums">{d.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Risk by region bar */}
+          {stats?.regionalStats && stats.regionalStats.length > 0 && (
+            <Card className="col-span-7">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-primary" />
+                  <CardTitle>High-Risk Patients by Region</CardTitle>
+                </div>
+              </CardHeader>
+              <CardBody>
+                <div className="h-52">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.regionalStats.slice(0, 8)} layout="vertical" margin={{ top: 0, right: 20, left: 130, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="region" type="category" axisLine={false} tickLine={false} tick={{ fill: "#374151", fontSize: 11 }} width={125} />
+                      <RechartsTooltip cursor={{ fill: "#F1F5F9" }} contentStyle={{ borderRadius: "12px", border: "1px solid #E2E8F0", fontSize: 12 }} />
+                      <Bar dataKey="highRisk" fill="#f97316" name="High Risk" radius={[0, 6, 6, 0]} barSize={14} />
+                      <Bar dataKey="patients" fill="#93c5fd" name="Total Patients" radius={[0, 6, 6, 0]} barSize={14} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
           {/* Regional table */}
           {stats?.regionalStats && stats.regionalStats.length > 0 && (
             <Card className="col-span-12">
@@ -220,13 +299,15 @@ export default function AdminDashboard() {
                       <td className="font-bold text-foreground">{r.region}</td>
                       <td className="font-mono tabular-nums">{r.patients?.toLocaleString()}</td>
                       <td className="tabular-nums">{r.hospitals}</td>
-                      <td><span className="font-mono font-bold text-warning">{r.highRisk ?? "—"}</span></td>
+                      <td>
+                        <span className={`font-mono font-bold ${r.highRisk > 5 ? "text-orange-600" : "text-muted-foreground"}`}>{r.highRisk ?? "—"}</span>
+                      </td>
                       <td>
                         <div className="flex items-center gap-2.5">
                           <div className="flex-1 bg-secondary rounded-full h-1.5 max-w-[100px]">
-                            <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min((r.hospitals / 80) * 100, 100)}%` }} />
+                            <div className="h-full bg-primary rounded-full" style={{ width: r.coverage }} />
                           </div>
-                          <span className="text-xs text-muted-foreground font-mono">{r.coverage ?? "—"}</span>
+                          <span className="text-xs text-muted-foreground font-mono">{r.coverage}</span>
                         </div>
                       </td>
                     </tr>
