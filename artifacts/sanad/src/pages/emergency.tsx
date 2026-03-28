@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Search, AlertTriangle, Droplet, Pill, FileWarning, PhoneCall, Activity } from "lucide-react";
-import { motion } from "framer-motion";
+import { Search, AlertTriangle, Droplet, Pill, FileWarning, PhoneCall, Activity, ChevronRight, Clock } from "lucide-react";
 import { Layout } from "@/components/layout";
-import { Card, Input, Button, Badge, PageHeader } from "@/components/shared";
+import { Card, CardHeader, CardTitle, CardBody, Input, Button, Badge, PageHeader, StatusDot } from "@/components/shared";
 import { useEmergencyLookup } from "@workspace/api-client-react";
 
 export default function EmergencyPage() {
@@ -16,164 +15,213 @@ export default function EmergencyPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (nationalId.trim()) {
-      setSubmittedId(nationalId.trim());
-    }
+    if (nationalId.trim()) setSubmittedId(nationalId.trim());
   };
 
   return (
     <Layout role="emergency">
-      <PageHeader 
-        title="Emergency Lookup" 
-        subtitle="Instantly access life-saving critical patient data."
+      <PageHeader
+        title="Emergency Patient Lookup"
+        subtitle="Instant access to life-critical patient information for first responders."
       />
 
-      <Card className="p-2 mb-8 bg-card border-2 focus-within:border-destructive/50 transition-colors">
-        <form onSubmit={handleSearch} className="flex items-center gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-6 h-6" />
-            <Input 
-              autoFocus
-              value={nationalId}
-              onChange={(e) => setNationalId(e.target.value)}
-              placeholder="Scan or enter National ID (e.g. 1000000000)" 
-              className="pl-14 h-16 text-2xl font-mono tracking-widest border-0 ring-0 focus-visible:ring-0 shadow-none bg-transparent"
-            />
-          </div>
-          <Button type="submit" size="lg" variant="destructive" className="h-16 px-10 text-xl rounded-xl shrink-0">
-            LOOKUP
-          </Button>
-        </form>
+      {/* Search Panel */}
+      <Card className="mb-6 border-destructive/30">
+        <CardBody className="p-5">
+          <form onSubmit={handleSearch} className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                autoFocus
+                value={nationalId}
+                onChange={(e) => setNationalId(e.target.value)}
+                placeholder="Enter National ID number (e.g. 1000000001)"
+                className="pl-10 h-10 font-mono text-base"
+              />
+            </div>
+            <Button type="submit" variant="destructive" size="md" className="shrink-0">
+              <Search className="w-4 h-4" /> Emergency Lookup
+            </Button>
+          </form>
+          <p className="text-xs text-muted-foreground mt-2 ml-1">
+            Demo IDs: 1000000001 · 1000000003 · 1000000005 · 1000000023
+          </p>
+        </CardBody>
       </Card>
 
       {isLoading && (
-        <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-destructive mb-4"></div>
-          <p className="text-xl font-medium">Retrieving critical data...</p>
+        <div className="flex items-center gap-3 text-muted-foreground py-12 justify-center">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-destructive" />
+          <span className="text-sm font-medium">Retrieving critical patient data...</span>
         </div>
       )}
 
-      {isError && (
-        <Card className="p-8 border-destructive/20 bg-destructive/5 text-center">
-          <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h3 className="text-2xl font-bold text-destructive mb-2">Patient Not Found</h3>
-          <p className="text-muted-foreground">Please verify the National ID number and try again.</p>
+      {isError && !isLoading && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardBody className="flex items-center gap-4 p-5">
+            <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            </div>
+            <div>
+              <p className="font-semibold text-destructive">Patient Not Found</p>
+              <p className="text-sm text-muted-foreground">No record found for National ID: <span className="font-mono">{submittedId}</span>. Please verify and retry.</p>
+            </div>
+          </CardBody>
         </Card>
       )}
 
       {patient && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
+        <div className="space-y-5">
+          {/* Critical Alerts Banner */}
           {patient.criticalAlerts.length > 0 && (
-            <div className="bg-destructive text-destructive-foreground p-4 rounded-2xl flex items-start gap-4 shadow-lg shadow-destructive/20 animate-in slide-in-from-top-4">
-              <AlertTriangle className="w-8 h-8 shrink-0 mt-1" />
+            <div className="bg-destructive text-white rounded-lg p-4 flex items-start gap-3 shadow-lg shadow-destructive/20">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-bold text-xl mb-1">CRITICAL ALERTS</h3>
-                <ul className="list-disc list-inside space-y-1 ml-4 text-lg">
+                <p className="font-bold text-sm uppercase tracking-wide mb-1">Critical Medical Alerts</p>
+                <ul className="space-y-0.5">
                   {patient.criticalAlerts.map((alert, i) => (
-                    <li key={i}>{alert}</li>
+                    <li key={i} className="text-sm text-white/90 flex items-center gap-2">
+                      <ChevronRight className="w-3 h-3 shrink-0" /> {alert}
+                    </li>
                   ))}
                 </ul>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-6 md:col-span-2 flex items-center justify-between bg-primary text-primary-foreground border-transparent">
-              <div>
-                <p className="text-primary-foreground/70 font-medium uppercase tracking-wider mb-1">Patient Name</p>
-                <h2 className="text-4xl font-display font-bold">{patient.fullName}</h2>
-                <p className="text-primary-foreground/80 mt-2 font-mono">ID: {patient.nationalId}</p>
-              </div>
-              <div className="text-right">
-                <Badge variant={patient.riskLevel === 'critical' ? 'destructive' : 'warning'} className="text-lg px-4 py-1">
-                  {patient.riskLevel.toUpperCase()} RISK
-                </Badge>
-              </div>
-            </Card>
-
-            <Card className="p-6 flex flex-col items-center justify-center bg-red-50 border-red-100 dark:bg-red-950/20">
-              <Droplet className="w-10 h-10 text-red-500 mb-2" />
-              <p className="text-muted-foreground font-medium uppercase tracking-wider mb-1">Blood Type</p>
-              <h3 className="text-5xl font-display font-bold text-red-600">{patient.bloodType}</h3>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="p-6 border-destructive/20 shadow-destructive/5">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
-                <FileWarning className="w-6 h-6 text-destructive" />
-                <h3 className="text-xl font-bold text-foreground">Allergies</h3>
-              </div>
-              {patient.allergies.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {patient.allergies.map((allergy, i) => (
-                    <span key={i} className="px-4 py-2 bg-destructive/10 text-destructive rounded-xl font-bold text-lg">
-                      {allergy}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No known allergies.</p>
-              )}
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
-                <Activity className="w-6 h-6 text-primary" />
-                <h3 className="text-xl font-bold text-foreground">Chronic Conditions</h3>
-              </div>
-              {patient.chronicConditions.length > 0 ? (
-                <ul className="space-y-3">
-                  {patient.chronicConditions.map((cond, i) => (
-                    <li key={i} className="flex items-center gap-3 text-lg font-medium">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                      {cond}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground">No chronic conditions.</p>
-              )}
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
-                <Pill className="w-6 h-6 text-accent" />
-                <h3 className="text-xl font-bold text-foreground">Current Medications</h3>
-              </div>
-              {patient.currentMedications.length > 0 ? (
-                <ul className="space-y-3">
-                  {patient.currentMedications.map((med, i) => (
-                    <li key={i} className="flex items-center justify-between p-3 bg-secondary rounded-xl">
-                      <span className="font-bold">{med}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground">Not currently taking any medications.</p>
-              )}
-            </Card>
-
-            <Card className="p-6 bg-slate-50 dark:bg-slate-900">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
-                <PhoneCall className="w-6 h-6 text-muted-foreground" />
-                <h3 className="text-xl font-bold text-foreground">Emergency Contact</h3>
-              </div>
-              {patient.emergencyContact ? (
+          {/* Patient Identity Row */}
+          <div className="grid grid-cols-12 gap-4">
+            {/* Identity card */}
+            <Card className="col-span-7">
+              <div className="p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold mb-1">{patient.emergencyContact}</p>
-                  <p className="text-xl text-primary font-mono">{patient.emergencyPhone}</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Patient Identity</p>
+                  <h2 className="text-2xl font-bold text-foreground mb-1">{patient.fullName}</h2>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span className="font-mono bg-secondary px-2 py-0.5 rounded text-xs">{patient.nationalId}</span>
+                    <span>Age {patient.age}</span>
+                    <span>·</span>
+                    <span>{patient.gender}</span>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-muted-foreground">No emergency contact listed.</p>
-              )}
+                <div className="text-right flex flex-col items-end gap-2">
+                  <Badge variant={patient.riskLevel === 'critical' ? 'destructive' : patient.riskLevel === 'high' ? 'warning' : 'info'} className="text-xs px-2.5 py-1">
+                    {patient.riskLevel?.toUpperCase()} RISK
+                  </Badge>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span>Live Data</span>
+                    <StatusDot status="active" />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Blood type card */}
+            <Card className="col-span-2 border-red-200 bg-red-50">
+              <CardBody className="flex flex-col items-center justify-center py-6">
+                <Droplet className="w-6 h-6 text-red-500 mb-2" />
+                <p className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-1">Blood Type</p>
+                <p className="text-4xl font-bold text-red-700">{patient.bloodType}</p>
+              </CardBody>
+            </Card>
+
+            {/* Emergency contact card */}
+            <Card className="col-span-3">
+              <CardBody className="py-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <PhoneCall className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emergency Contact</p>
+                </div>
+                {patient.emergencyContact ? (
+                  <>
+                    <p className="font-semibold text-foreground">{patient.emergencyContact}</p>
+                    <p className="text-lg font-bold text-primary font-mono mt-1">{patient.emergencyPhone}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Not listed</p>
+                )}
+              </CardBody>
             </Card>
           </div>
-        </motion.div>
+
+          {/* Clinical Data Row */}
+          <div className="grid grid-cols-12 gap-4">
+            {/* Allergies */}
+            <Card className="col-span-4">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <FileWarning className="w-4 h-4 text-destructive" />
+                  <CardTitle>Known Allergies</CardTitle>
+                </div>
+                <Badge variant="destructive">{patient.allergies.length}</Badge>
+              </CardHeader>
+              <CardBody>
+                {patient.allergies.length > 0 ? (
+                  <div className="space-y-2">
+                    {patient.allergies.map((allergy, i) => (
+                      <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-destructive/5 border border-destructive/15 rounded-md">
+                        <StatusDot status="critical" />
+                        <span className="text-sm font-semibold text-destructive">{allergy}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No known allergies on record.</p>
+                )}
+              </CardBody>
+            </Card>
+
+            {/* Chronic Conditions */}
+            <Card className="col-span-4">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-primary" />
+                  <CardTitle>Chronic Conditions</CardTitle>
+                </div>
+                <Badge variant="default">{patient.chronicConditions.length}</Badge>
+              </CardHeader>
+              <CardBody>
+                {patient.chronicConditions.length > 0 ? (
+                  <div className="space-y-2">
+                    {patient.chronicConditions.map((cond, i) => (
+                      <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-secondary rounded-md">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                        <span className="text-sm font-medium text-foreground">{cond}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No chronic conditions on record.</p>
+                )}
+              </CardBody>
+            </Card>
+
+            {/* Current Medications */}
+            <Card className="col-span-4">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Pill className="w-4 h-4 text-amber-600" />
+                  <CardTitle>Active Medications</CardTitle>
+                </div>
+                <Badge variant="warning">{patient.currentMedications.length}</Badge>
+              </CardHeader>
+              <CardBody>
+                {patient.currentMedications.length > 0 ? (
+                  <div className="space-y-2">
+                    {patient.currentMedications.map((med, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-2 bg-secondary rounded-md">
+                        <span className="text-sm font-medium text-foreground">{med}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No active medications.</p>
+                )}
+              </CardBody>
+            </Card>
+          </div>
+        </div>
       )}
     </Layout>
   );

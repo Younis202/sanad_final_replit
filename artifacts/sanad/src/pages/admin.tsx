@@ -1,12 +1,14 @@
 import React from "react";
 import { Layout } from "@/components/layout";
-import { PageHeader, Card } from "@/components/shared";
+import { PageHeader, Card, CardHeader, CardTitle, CardBody, KpiCard, Badge } from "@/components/shared";
 import { useGetAdminStats, useGetPopulationHealth } from "@workspace/api-client-react";
-import { Users, Activity, ShieldAlert, Building } from "lucide-react";
-import { 
+import { Users, Activity, ShieldAlert, Building, TrendingUp, AlertTriangle } from "lucide-react";
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line
+  PieChart, Pie, Cell, LineChart, Line, Legend
 } from "recharts";
+
+const COLORS = ['#1e3a5f', '#1d4ed8', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#e0f2fe'];
 
 export default function AdminDashboard() {
   const { data: stats, isLoading: statsLoading } = useGetAdminStats();
@@ -15,120 +17,255 @@ export default function AdminDashboard() {
   if (statsLoading || healthLoading) {
     return (
       <Layout role="admin">
-        <div className="py-20 text-center text-muted-foreground animate-pulse">Aggregating national health data...</div>
+        <div className="flex items-center gap-3 py-20 justify-center text-muted-foreground">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+          <span className="text-sm">Aggregating national health data...</span>
+        </div>
       </Layout>
     );
   }
 
-  const COLORS = ['#0F172A', '#0369A1', '#0EA5E9', '#38BDF8', '#7DD3FC'];
-
   return (
     <Layout role="admin">
-      <PageHeader 
-        title="Ministry of Health Analytics" 
-        subtitle="Real-time national infrastructure metrics and population health."
-      />
+      <div className="flex items-start justify-between mb-6">
+        <PageHeader
+          title="Ministry of Health — Analytics Command Center"
+          subtitle="Real-time national infrastructure metrics and population health intelligence."
+        />
+        <div className="flex items-center gap-2 shrink-0 ml-6">
+          <span className="text-xs text-muted-foreground font-medium">Data as of:</span>
+          <span className="text-xs font-mono bg-secondary border border-border rounded px-2 py-1">
+            {new Date().toLocaleString('en-SA', { dateStyle: 'medium', timeStyle: 'short' })}
+          </span>
+        </div>
+      </div>
 
-      {/* Stats Row */}
+      {/* KPI Row */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard title="Total Patients" value={stats.totalPatients.toLocaleString()} icon={Users} trend="+2.4%" />
-          <StatCard title="Today's Visits" value={stats.totalVisitsToday.toLocaleString()} icon={Activity} trend="+12%" />
-          <StatCard title="AI Interactions Blocked" value={stats.drugInteractionsBlocked.toLocaleString()} icon={ShieldAlert} color="text-success" />
-          <StatCard title="Connected Hospitals" value={stats.hospitalsConnected.toLocaleString()} icon={Building} />
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <KpiCard
+            title="Registered Patients"
+            value={stats.totalPatients.toLocaleString()}
+            sub="Active national records"
+            icon={Users}
+            color="text-primary"
+            trend="+2.4%"
+          />
+          <KpiCard
+            title="Visits Today"
+            value={stats.totalVisitsToday.toLocaleString()}
+            sub="Across all facilities"
+            icon={Activity}
+            color="text-sky-600"
+            trend="+12%"
+          />
+          <KpiCard
+            title="AI Interactions Blocked"
+            value={stats.drugInteractionsBlocked.toLocaleString()}
+            sub="Drug conflicts prevented"
+            icon={ShieldAlert}
+            color="text-success"
+          />
+          <KpiCard
+            title="Connected Hospitals"
+            value={stats.hospitalsConnected.toLocaleString()}
+            sub="Nationwide network"
+            icon={Building}
+            color="text-primary"
+          />
+        </div>
+      )}
+
+      {/* Alert summary strip */}
+      {stats && stats.highRiskPatients > 0 && (
+        <div className="mb-5 flex items-center gap-3 px-4 py-3 bg-warning/8 border border-warning/25 rounded-lg">
+          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+          <p className="text-sm font-medium text-foreground">
+            <span className="font-bold text-warning">{stats.highRiskPatients}</span> patients currently classified as high or critical risk require clinical follow-up.
+          </p>
+          <Badge variant="warning" className="ml-auto shrink-0">{stats.highRiskPatients} flagged</Badge>
         </div>
       )}
 
       {/* Charts Grid */}
       {popHealth && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-bold mb-6">Monthly Visit Trend</h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={popHealth.monthlyVisitTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: '#64748B'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B'}} />
-                  <RechartsTooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Line type="monotone" dataKey="visits" stroke="#0F172A" strokeWidth={3} dot={{r:4, strokeWidth:2}} activeDot={{r: 6}} />
-                  <Line type="monotone" dataKey="emergency" stroke="#DC2626" strokeWidth={3} dot={{r:4, strokeWidth:2}} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+        <div className="grid grid-cols-12 gap-5">
+          {/* Monthly Trend — wide */}
+          <Card className="col-span-8">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <CardTitle>Monthly Visit Trend</CardTitle>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="w-3 h-0.5 bg-primary inline-block rounded" /> Total Visits
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="w-3 h-0.5 bg-destructive inline-block rounded" /> Emergency
+                </span>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={popHealth.monthlyVisitTrend} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} />
+                    <RechartsTooltip
+                      contentStyle={{ borderRadius: '6px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: 12 }}
+                    />
+                    <Line type="monotone" dataKey="visits" stroke="#1e3a5f" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="emergency" stroke="#dc2626" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2 }} strokeDasharray="5 3" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardBody>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-bold mb-6">Top Chronic Conditions</h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={popHealth.conditionBreakdown} layout="vertical" margin={{ top: 5, right: 30, left: 150, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="condition" type="category" axisLine={false} tickLine={false} tick={{fill: '#0F172A', fontWeight: 500}} />
-                  <RechartsTooltip cursor={{fill: '#F1F5F9'}} contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                  <Bar dataKey="count" fill="#0369A1" radius={[0, 4, 4, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          {/* Blood Type Pie — narrow */}
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Blood Type Distribution</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={popHealth.bloodTypeDistribution}
+                      innerRadius={55}
+                      outerRadius={75}
+                      paddingAngle={2}
+                      dataKey="count"
+                      nameKey="bloodType"
+                    >
+                      {popHealth.bloodTypeDistribution.map((_: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      contentStyle={{ borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: 12 }}
+                      formatter={(value: any, name: any) => [`${value} patients`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-4 gap-x-2 gap-y-1.5 mt-2">
+                {popHealth.bloodTypeDistribution.map((d: any, i: number) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                    <span className="text-xs text-muted-foreground font-mono">{d.bloodType}</span>
+                  </div>
+                ))}
+              </div>
+            </CardBody>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-bold mb-6">Blood Type Distribution</h3>
-            <div className="h-72 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={popHealth.bloodTypeDistribution}
-                    innerRadius={80}
-                    outerRadius={110}
-                    paddingAngle={2}
-                    dataKey="count"
-                    nameKey="bloodType"
+          {/* Chronic Conditions Bar — half */}
+          <Card className="col-span-6">
+            <CardHeader>
+              <CardTitle>Top Chronic Conditions</CardTitle>
+              <Badge variant="default">{popHealth.conditionBreakdown?.length} conditions tracked</Badge>
+            </CardHeader>
+            <CardBody>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={popHealth.conditionBreakdown}
+                    layout="vertical"
+                    margin={{ top: 0, right: 20, left: 140, bottom: 0 }}
                   >
-                    {popHealth.bloodTypeDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                    <XAxis type="number" hide />
+                    <YAxis
+                      dataKey="condition"
+                      type="category"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#374151', fontSize: 11, fontWeight: 500 }}
+                      width={130}
+                    />
+                    <RechartsTooltip
+                      cursor={{ fill: '#F1F5F9' }}
+                      contentStyle={{ borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: 12 }}
+                    />
+                    <Bar dataKey="count" fill="#1e3a5f" radius={[0, 4, 4, 0]} barSize={18} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardBody>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="text-lg font-bold mb-6">Age Distribution</h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={popHealth.ageDistribution} margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                  <XAxis dataKey="ageGroup" axisLine={false} tickLine={false} tick={{fill: '#64748B'}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748B'}} />
-                  <RechartsTooltip cursor={{fill: '#F1F5F9'}} contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                  <Bar dataKey="count" fill="#0F172A" radius={[4, 4, 0, 0]} barSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          {/* Age Distribution — half */}
+          <Card className="col-span-6">
+            <CardHeader>
+              <CardTitle>Population Age Distribution</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={popHealth.ageDistribution} margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="ageGroup" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} dy={8} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} />
+                    <RechartsTooltip
+                      cursor={{ fill: '#F1F5F9' }}
+                      contentStyle={{ borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: 12 }}
+                    />
+                    <Bar dataKey="count" fill="#1d4ed8" radius={[3, 3, 0, 0]} barSize={36} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardBody>
           </Card>
+
+          {/* Regional table */}
+          {stats?.regionalStats && stats.regionalStats.length > 0 && (
+            <Card className="col-span-12">
+              <CardHeader>
+                <CardTitle>Regional Health Overview</CardTitle>
+                <Badge variant="outline">{stats.regionalStats.length} regions</Badge>
+              </CardHeader>
+              <table className="w-full data-table">
+                <thead>
+                  <tr>
+                    <th>Region</th>
+                    <th>Total Patients</th>
+                    <th>Hospitals</th>
+                    <th>High Risk Patients</th>
+                    <th>Coverage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.regionalStats.map((r: any, i: number) => (
+                    <tr key={i}>
+                      <td className="font-semibold text-foreground">{r.region}</td>
+                      <td className="font-mono tabular-nums">{r.patients?.toLocaleString()}</td>
+                      <td className="tabular-nums">{r.hospitals}</td>
+                      <td>
+                        <span className="font-mono tabular-nums text-warning font-semibold">{r.highRisk ?? '—'}</span>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-secondary rounded-full h-1.5 max-w-[80px]">
+                            <div
+                              className="h-full bg-primary rounded-full"
+                              style={{ width: `${Math.min((r.hospitals / 80) * 100, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground">{r.coverage ?? '—'}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
         </div>
       )}
     </Layout>
-  );
-}
-
-function StatCard({ title, value, icon: Icon, trend, color = "text-primary" }: any) {
-  return (
-    <Card className="p-6">
-      <div className="flex justify-between items-start mb-4">
-        <div className={`p-3 rounded-xl bg-secondary ${color}`}>
-          <Icon className="w-6 h-6" />
-        </div>
-        {trend && <span className="text-sm font-bold text-success bg-success/10 px-2 py-1 rounded-md">{trend}</span>}
-      </div>
-      <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
-      <h3 className="text-3xl font-display font-bold text-foreground">{value}</h3>
-    </Card>
   );
 }
