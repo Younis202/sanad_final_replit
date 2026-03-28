@@ -32,14 +32,17 @@ import type {
   ListMedicationsParams,
   ListPatientsParams,
   ListVisitsParams,
+  MarkAllAlertsReadBody,
   MedicationListResponse,
   Patient,
   PatientDetail,
   PatientListResponse,
   PopulationHealthResponse,
+  PredictionsResponse,
   PrescribeMedicationRequest,
   PrescribeMedicationResponse,
   RiskScoreResponse,
+  SuccessResponse,
   Visit,
   VisitListResponse,
 } from "./api.schemas";
@@ -1297,6 +1300,268 @@ export const useCheckDrugInteraction = <
   TContext
 > => {
   return useMutation(getCheckDrugInteractionMutationOptions(options));
+};
+
+/**
+ * @summary Get AI-generated clinical predictions for a patient
+ */
+export const getGetPatientPredictionsUrl = (patientId: number) => {
+  return `/api/ai/predictions/${patientId}`;
+};
+
+export const getPatientPredictions = async (
+  patientId: number,
+  options?: RequestInit,
+): Promise<PredictionsResponse> => {
+  return customFetch<PredictionsResponse>(
+    getGetPatientPredictionsUrl(patientId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetPatientPredictionsQueryKey = (patientId: number) => {
+  return [`/api/ai/predictions/${patientId}`] as const;
+};
+
+export const getGetPatientPredictionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPatientPredictions>>,
+  TError = ErrorType<unknown>,
+>(
+  patientId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPatientPredictions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPatientPredictionsQueryKey(patientId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPatientPredictions>>
+  > = ({ signal }) =>
+    getPatientPredictions(patientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!patientId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPatientPredictions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPatientPredictionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPatientPredictions>>
+>;
+export type GetPatientPredictionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get AI-generated clinical predictions for a patient
+ */
+
+export function useGetPatientPredictions<
+  TData = Awaited<ReturnType<typeof getPatientPredictions>>,
+  TError = ErrorType<unknown>,
+>(
+  patientId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPatientPredictions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPatientPredictionsQueryOptions(patientId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mark an alert as read
+ */
+export const getMarkAlertReadUrl = (id: number) => {
+  return `/api/alerts/${id}/read`;
+};
+
+export const markAlertRead = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getMarkAlertReadUrl(id), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getMarkAlertReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markAlertRead>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markAlertRead>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["markAlertRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markAlertRead>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return markAlertRead(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkAlertReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markAlertRead>>
+>;
+
+export type MarkAlertReadMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark an alert as read
+ */
+export const useMarkAlertRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markAlertRead>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markAlertRead>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getMarkAlertReadMutationOptions(options));
+};
+
+/**
+ * @summary Mark all alerts as read for a patient
+ */
+export const getMarkAllAlertsReadUrl = () => {
+  return `/api/alerts/read-all`;
+};
+
+export const markAllAlertsRead = async (
+  markAllAlertsReadBody: MarkAllAlertsReadBody,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getMarkAllAlertsReadUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(markAllAlertsReadBody),
+  });
+};
+
+export const getMarkAllAlertsReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markAllAlertsRead>>,
+    TError,
+    { data: BodyType<MarkAllAlertsReadBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markAllAlertsRead>>,
+  TError,
+  { data: BodyType<MarkAllAlertsReadBody> },
+  TContext
+> => {
+  const mutationKey = ["markAllAlertsRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markAllAlertsRead>>,
+    { data: BodyType<MarkAllAlertsReadBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return markAllAlertsRead(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkAllAlertsReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markAllAlertsRead>>
+>;
+export type MarkAllAlertsReadMutationBody = BodyType<MarkAllAlertsReadBody>;
+export type MarkAllAlertsReadMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark all alerts as read for a patient
+ */
+export const useMarkAllAlertsRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markAllAlertsRead>>,
+    TError,
+    { data: BodyType<MarkAllAlertsReadBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markAllAlertsRead>>,
+  TError,
+  { data: BodyType<MarkAllAlertsReadBody> },
+  TContext
+> => {
+  return useMutation(getMarkAllAlertsReadMutationOptions(options));
 };
 
 /**

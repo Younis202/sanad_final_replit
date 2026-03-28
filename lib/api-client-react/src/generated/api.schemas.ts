@@ -174,10 +174,40 @@ export const EmergencyPatientDataRiskLevel = {
   critical: "critical",
 } as const;
 
+export type ClinicalActionAction =
+  (typeof ClinicalActionAction)[keyof typeof ClinicalActionAction];
+
+export const ClinicalActionAction = {
+  DO_NOT_GIVE: "DO_NOT_GIVE",
+  MONITOR: "MONITOR",
+  URGENT_REVIEW: "URGENT_REVIEW",
+  ALERT_FAMILY: "ALERT_FAMILY",
+  PREPARE_EQUIPMENT: "PREPARE_EQUIPMENT",
+  HOLD_MEDICATION: "HOLD_MEDICATION",
+} as const;
+
+export type ClinicalActionPriority =
+  (typeof ClinicalActionPriority)[keyof typeof ClinicalActionPriority];
+
+export const ClinicalActionPriority = {
+  immediate: "immediate",
+  urgent: "urgent",
+  standard: "standard",
+} as const;
+
+export interface ClinicalAction {
+  action: ClinicalActionAction;
+  priority: ClinicalActionPriority;
+  description: string;
+  reason: string;
+}
+
 export interface EmergencyPatientData {
   id: number;
   nationalId: string;
   fullName: string;
+  age?: number;
+  gender?: string;
   bloodType: string;
   allergies: string[];
   chronicConditions: string[];
@@ -185,7 +215,9 @@ export interface EmergencyPatientData {
   emergencyContact?: string;
   emergencyPhone?: string;
   riskLevel: EmergencyPatientDataRiskLevel;
+  riskScore?: number;
   criticalAlerts: string[];
+  clinicalActions?: ClinicalAction[];
 }
 
 export interface MedicationListResponse {
@@ -342,6 +374,54 @@ export interface PopulationHealthResponse {
   monthlyVisitTrend: MonthlyVisitStat[];
 }
 
+export interface SuccessResponse {
+  success: boolean;
+}
+
+export type PredictionWarningType =
+  (typeof PredictionWarningType)[keyof typeof PredictionWarningType];
+
+export const PredictionWarningType = {
+  deterioration: "deterioration",
+  pattern: "pattern",
+  risk_escalation: "risk_escalation",
+  adherence: "adherence",
+  complication: "complication",
+} as const;
+
+export type PredictionWarningSeverity =
+  (typeof PredictionWarningSeverity)[keyof typeof PredictionWarningSeverity];
+
+export const PredictionWarningSeverity = {
+  low: "low",
+  moderate: "moderate",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type PredictionWarningConfidence =
+  (typeof PredictionWarningConfidence)[keyof typeof PredictionWarningConfidence];
+
+export const PredictionWarningConfidence = {
+  low: "low",
+  moderate: "moderate",
+  high: "high",
+} as const;
+
+export interface PredictionWarning {
+  type: PredictionWarningType;
+  severity: PredictionWarningSeverity;
+  title: string;
+  description: string;
+  recommendation: string;
+  confidence: PredictionWarningConfidence;
+}
+
+export interface PredictionsResponse {
+  patientId: number;
+  predictions: PredictionWarning[];
+}
+
 export type ListPatientsParams = {
   search?: string;
   page?: number;
@@ -361,5 +441,9 @@ export type ListLabResultsParams = {
 };
 
 export type ListAlertsParams = {
+  patientId: number;
+};
+
+export type MarkAllAlertsReadBody = {
   patientId: number;
 };

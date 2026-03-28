@@ -5,12 +5,15 @@
  * Sanad National Health Infrastructure API
  * OpenAPI spec version: 0.1.0
  */
+import type { ClinicalAction } from "./clinicalAction";
 import type { EmergencyPatientDataRiskLevel } from "./emergencyPatientDataRiskLevel";
 
 export interface EmergencyPatientData {
   id: number;
   nationalId: string;
   fullName: string;
+  age?: number;
+  gender?: string;
   bloodType: string;
   allergies: string[];
   chronicConditions: string[];
@@ -18,5 +21,7 @@ export interface EmergencyPatientData {
   emergencyContact?: string;
   emergencyPhone?: string;
   riskLevel: EmergencyPatientDataRiskLevel;
+  riskScore?: number;
   criticalAlerts: string[];
+  clinicalActions?: ClinicalAction[];
 }

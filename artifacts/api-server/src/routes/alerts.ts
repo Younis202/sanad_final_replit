@@ -21,4 +21,34 @@ router.get("/", async (req, res) => {
   res.json({ alerts });
 });
 
+router.patch("/:id/read", async (req, res) => {
+  const alertId = parseInt(req.params["id"]!);
+  if (isNaN(alertId)) {
+    res.status(400).json({ error: "INVALID_PARAM", message: "Invalid alert ID" });
+    return;
+  }
+
+  await db
+    .update(alertsTable)
+    .set({ isRead: true })
+    .where(eq(alertsTable.id, alertId));
+
+  res.json({ success: true });
+});
+
+router.patch("/read-all", async (req, res) => {
+  const patientId = parseInt(req.body?.patientId as string);
+  if (isNaN(patientId)) {
+    res.status(400).json({ error: "INVALID_PARAM", message: "patientId is required" });
+    return;
+  }
+
+  await db
+    .update(alertsTable)
+    .set({ isRead: true })
+    .where(eq(alertsTable.patientId, patientId));
+
+  res.json({ success: true });
+});
+
 export default router;

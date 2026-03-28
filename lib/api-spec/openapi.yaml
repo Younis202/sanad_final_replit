@@ -306,6 +306,67 @@ paths:
               schema:
                 $ref: "#/components/schemas/DrugInteractionResponse"
 
+  /ai/predictions/{patientId}:
+    get:
+      operationId: getPatientPredictions
+      tags: [patients]
+      summary: Get AI-generated clinical predictions for a patient
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Clinical predictions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionsResponse"
+
+  /alerts/{id}/read:
+    patch:
+      operationId: markAlertRead
+      tags: [alerts]
+      summary: Mark an alert as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Alert marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /alerts/read-all:
+    patch:
+      operationId: markAllAlertsRead
+      tags: [alerts]
+      summary: Mark all alerts as read for a patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                patientId:
+                  type: integer
+              required: [patientId]
+      responses:
+        "200":
+          description: All alerts marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
   /admin/stats:
     get:
       operationId: getAdminStats
@@ -468,6 +529,10 @@ components:
           type: string
         fullName:
           type: string
+        age:
+          type: integer
+        gender:
+          type: string
         bloodType:
           type: string
         allergies:
@@ -489,10 +554,16 @@ components:
         riskLevel:
           type: string
           enum: [low, medium, high, critical]
+        riskScore:
+          type: integer
         criticalAlerts:
           type: array
           items:
             type: string
+        clinicalActions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClinicalAction"
       required: [id, nationalId, fullName, bloodType, allergies, chronicConditions, currentMedications, riskLevel, criticalAlerts]
 
     Medication:
@@ -847,3 +918,56 @@ components:
         emergency:
           type: integer
       required: [month, visits, emergency]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required: [success]
+
+    ClinicalAction:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [DO_NOT_GIVE, MONITOR, URGENT_REVIEW, ALERT_FAMILY, PREPARE_EQUIPMENT, HOLD_MEDICATION]
+        priority:
+          type: string
+          enum: [immediate, urgent, standard]
+        description:
+          type: string
+        reason:
+          type: string
+      required: [action, priority, description, reason]
+
+    PredictionWarning:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [deterioration, pattern, risk_escalation, adherence, complication]
+        severity:
+          type: string
+          enum: [low, moderate, high, critical]
+        title:
+          type: string
+        description:
+          type: string
+        recommendation:
+          type: string
+        confidence:
+          type: string
+          enum: [low, moderate, high]
+      required: [type, severity, title, description, recommendation, confidence]
+
+    PredictionsResponse:
+      type: object
+      properties:
+        patientId:
+          type: integer
+        predictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PredictionWarning"
+      required: [patientId, predictions]

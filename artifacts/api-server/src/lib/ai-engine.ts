@@ -1,6 +1,6 @@
 export type InteractionSeverity = "low" | "moderate" | "high" | "critical";
 
-interface InteractionWarning {
+export interface InteractionWarning {
   severity: InteractionSeverity;
   conflictingDrug: string;
   description: string;
@@ -127,13 +127,13 @@ export function checkDrugInteractions(
   return warnings;
 }
 
-interface RiskFactor {
+export interface RiskFactor {
   factor: string;
   impact: "low" | "moderate" | "high";
   description: string;
 }
 
-interface RiskScoreResult {
+export interface RiskScoreResult {
   riskScore: number;
   riskLevel: "low" | "medium" | "high" | "critical";
   factors: RiskFactor[];
@@ -229,4 +229,298 @@ export function calculateRiskScore(patient: {
   }
 
   return { riskScore: score, riskLevel, factors, recommendations };
+}
+
+export interface PredictionWarning {
+  type: "deterioration" | "pattern" | "risk_escalation" | "adherence" | "complication";
+  severity: "low" | "moderate" | "high" | "critical";
+  title: string;
+  description: string;
+  recommendation: string;
+  confidence: "low" | "moderate" | "high";
+}
+
+export interface ClinicalAction {
+  action: "DO_NOT_GIVE" | "MONITOR" | "URGENT_REVIEW" | "ALERT_FAMILY" | "PREPARE_EQUIPMENT" | "HOLD_MEDICATION";
+  priority: "immediate" | "urgent" | "standard";
+  description: string;
+  reason: string;
+}
+
+interface LabResultInput {
+  testName: string;
+  result: string;
+  status: "normal" | "abnormal" | "critical";
+  testDate: string;
+}
+
+interface VisitInput {
+  visitDate: string;
+  visitType: string;
+  diagnosis: string;
+}
+
+export function generatePredictions(patient: {
+  dateOfBirth: string;
+  chronicConditions: string[] | null;
+  labResults: LabResultInput[];
+  visits: VisitInput[];
+  medicationCount: number;
+  allergies: string[] | null;
+}): PredictionWarning[] {
+  const predictions: PredictionWarning[] = [];
+  const conditions = (patient.chronicConditions || []).map(c => c.toLowerCase());
+
+  const sortedLabs = [...patient.labResults].sort(
+    (a, b) => new Date(b.testDate).getTime() - new Date(a.testDate).getTime()
+  );
+
+  const criticalLabs = sortedLabs.filter(l => l.status === "critical");
+  const abnormalLabs = sortedLabs.filter(l => l.status !== "normal");
+
+  const labsByName: Record<string, LabResultInput[]> = {};
+  for (const lab of sortedLabs) {
+    const key = lab.testName.toLowerCase().trim();
+    if (!labsByName[key]) labsByName[key] = [];
+    labsByName[key].push(lab);
+  }
+
+  for (const [, labGroup] of Object.entries(labsByName)) {
+    if (labGroup.length >= 2) {
+      const recentGroup = labGroup.slice(0, 3);
+      const allAbnormal = recentGroup.every(l => l.status !== "normal");
+      if (allAbnormal) {
+        predictions.push({
+          type: "deterioration",
+          severity: labGroup[0]?.status === "critical" ? "critical" : "high",
+          title: `Persistently Abnormal: ${labGroup[0]?.testName}`,
+          description: `${labGroup[0]?.testName} has been consistently abnormal across ${recentGroup.length} recent tests, indicating an unresolved or worsening condition.`,
+          recommendation: "Urgent specialist review recommended. Consider adjusting treatment protocol.",
+          confidence: "high",
+        });
+      }
+
+      const numericValues = recentGroup.map(l => parseFloat(l.result)).filter(v => !isNaN(v));
+      if (numericValues.length >= 2) {
+        const latest = numericValues[0]!;
+        const oldest = numericValues[numericValues.length - 1]!;
+        const trend = latest - oldest;
+        const pctChange = Math.abs(trend / (oldest || 1)) * 100;
+
+        if (trend > 0 && pctChange > 15 && labGroup[0]?.status !== "normal") {
+          predictions.push({
+            type: "deterioration",
+            severity: pctChange > 30 ? "high" : "moderate",
+            title: `Rising Trend: ${labGroup[0]?.testName} ↑`,
+            description: `${labGroup[0]?.testName} has increased by ${Math.round(pctChange)}% over recent measurements (latest: ${labGroup[0]?.result}).`,
+            recommendation: "Monitor closely. Adjust medication or investigate underlying cause.",
+            confidence: "high",
+          });
+        }
+      }
+    }
+  }
+
+  if (criticalLabs.length > 0) {
+    predictions.push({
+      type: "risk_escalation",
+      severity: "critical",
+      title: "Critical Laboratory Values Detected",
+      description: `${criticalLabs.length} lab result(s) in the critical range (${criticalLabs.map(l => l.testName).join(", ")}). Immediate intervention may be required.`,
+      recommendation: "Immediate physician review. Consider urgent intervention or escalation of care.",
+      confidence: "high",
+    });
+  }
+
+  const now = new Date();
+  const sixMonthsAgo = new Date(now); sixMonthsAgo.setMonth(now.getMonth() - 6);
+  const threeMonthsAgo = new Date(now); threeMonthsAgo.setMonth(now.getMonth() - 3);
+
+  const recentVisits = patient.visits.filter(v => new Date(v.visitDate) >= sixMonthsAgo);
+  const veryRecentVisits = patient.visits.filter(v => new Date(v.visitDate) >= threeMonthsAgo);
+  const emergencyVisits = recentVisits.filter(v => v.visitType === "emergency" || v.visitType === "inpatient");
+
+  if (veryRecentVisits.length >= 3) {
+    predictions.push({
+      type: "pattern",
+      severity: "high",
+      title: "Escalating Admission Pattern",
+      description: `Patient has had ${veryRecentVisits.length} hospital visits in the last 3 months, indicating a possible worsening trajectory.`,
+      recommendation: "Care coordinator review. Consider transitional care program to prevent further admissions.",
+      confidence: "high",
+    });
+  } else if (emergencyVisits.length >= 2) {
+    predictions.push({
+      type: "pattern",
+      severity: "moderate",
+      title: "Recurrent Emergency Presentations",
+      description: `${emergencyVisits.length} emergency visits in the past 6 months may indicate suboptimal disease control.`,
+      recommendation: "Review treatment adherence and outpatient follow-up schedule.",
+      confidence: "moderate",
+    });
+  }
+
+  if (conditions.some(c => c.includes("diabetes") || c.includes("type 1") || c.includes("type 2"))) {
+    const hba1cKeys = ["hba1c", "glycated hemoglobin", "glycohemoglobin", "hemoglobin a1c"];
+    const hba1c = hba1cKeys.flatMap(k => labsByName[k] ?? []);
+    const hasHighHba1c = hba1c.some(l => { const val = parseFloat(l.result); return !isNaN(val) && val > 7.5; });
+    if (hasHighHba1c || (hba1c.length === 0 && abnormalLabs.length > 0)) {
+      predictions.push({
+        type: "complication",
+        severity: "high",
+        title: "Diabetic Complication Risk",
+        description: "Poorly controlled diabetes significantly increases risk of nephropathy, retinopathy, neuropathy, and cardiovascular events.",
+        recommendation: "Optimize glycemic control. Screen for micro/macrovascular complications. Endocrinology referral if HbA1c > 8%.",
+        confidence: "high",
+      });
+    }
+  }
+
+  if (conditions.some(c => c.includes("heart failure"))) {
+    if (emergencyVisits.length >= 1 || abnormalLabs.length >= 2) {
+      predictions.push({
+        type: "complication",
+        severity: "high",
+        title: "Decompensated Heart Failure Risk",
+        description: "Pattern of emergency admissions and abnormal labs suggests risk of cardiac decompensation.",
+        recommendation: "Optimize diuretic therapy. Daily weight monitoring. Strict fluid restriction. Cardiology follow-up within 2 weeks.",
+        confidence: "moderate",
+      });
+    }
+  }
+
+  if (conditions.some(c => c.includes("ckd") || c.includes("kidney") || c.includes("renal"))) {
+    const renalKeys = ["creatinine", "serum creatinine", "egfr", "gfr"];
+    const hasWorsening = renalKeys.flatMap(k => labsByName[k] ?? []).some(l => l.status !== "normal");
+    if (hasWorsening) {
+      predictions.push({
+        type: "deterioration",
+        severity: "high",
+        title: "CKD Progression Risk",
+        description: "Worsening renal function markers suggest accelerated kidney disease progression.",
+        recommendation: "Nephrology urgent referral. Avoid nephrotoxic medications. Optimize BP control.",
+        confidence: "high",
+      });
+    }
+  }
+
+  const age = new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear();
+  if (age >= 65 && conditions.length >= 3 && patient.medicationCount >= 5) {
+    predictions.push({
+      type: "risk_escalation",
+      severity: "high",
+      title: "Frailty & Polypharmacy Risk",
+      description: `Elderly patient (${age}y) with ${conditions.length} chronic conditions and ${patient.medicationCount} medications — significant frailty and fall risk.`,
+      recommendation: "Comprehensive geriatric assessment. Medication deprescribing review. Fall prevention program.",
+      confidence: "high",
+    });
+  }
+
+  if (patient.medicationCount >= 5 && patient.visits.length > 0) {
+    const timeSinceLastVisit =
+      (now.getTime() - new Date(patient.visits[0]?.visitDate ?? now).getTime()) / (1000 * 60 * 60 * 24);
+    if (timeSinceLastVisit > 180) {
+      predictions.push({
+        type: "adherence",
+        severity: "moderate",
+        title: "Potential Medication Non-Adherence",
+        description: `Patient on ${patient.medicationCount} medications with no visit recorded in over 6 months.`,
+        recommendation: "Phone-based adherence check. Consider pharmacy follow-up or community health worker visit.",
+        confidence: "moderate",
+      });
+    }
+  }
+
+  const seen = new Set<string>();
+  return predictions.filter(p => {
+    if (seen.has(p.title)) return false;
+    seen.add(p.title);
+    return true;
+  }).slice(0, 8);
+}
+
+export function generateClinicalActions(
+  allergies: string[] | null,
+  currentMeds: string[],
+  riskLevel: string,
+  chronicConditions: string[] | null
+): ClinicalAction[] {
+  const actions: ClinicalAction[] = [];
+  const allergyLower = (allergies || []).map(a => a.toLowerCase());
+  const medsLower = currentMeds.map(m => m.toLowerCase());
+  const condLower = (chronicConditions || []).map(c => c.toLowerCase());
+
+  for (const allergy of allergyLower) {
+    if (allergy.includes("penicillin") || allergy.includes("amoxicillin") || allergy.includes("ampicillin")) {
+      actions.push({ action: "DO_NOT_GIVE", priority: "immediate", description: "DO NOT administer Penicillin, Amoxicillin, or Ampicillin", reason: "Documented penicillin allergy — use macrolides or cephalosporins with caution" });
+    }
+    if (allergy.includes("sulfa") || allergy.includes("sulfonamide") || allergy.includes("sulfamethoxazole")) {
+      actions.push({ action: "DO_NOT_GIVE", priority: "immediate", description: "DO NOT administer Sulfonamides or TMP-SMX", reason: "Documented sulfa allergy — risk of anaphylaxis" });
+    }
+    if (allergy.includes("nsaid") || allergy.includes("aspirin") || allergy.includes("ibuprofen")) {
+      actions.push({ action: "DO_NOT_GIVE", priority: "immediate", description: "DO NOT administer NSAIDs or Aspirin", reason: "Documented NSAID allergy — use paracetamol for pain management" });
+    }
+    if (allergy.includes("contrast") || allergy.includes("iodine")) {
+      actions.push({ action: "DO_NOT_GIVE", priority: "immediate", description: "ALERT before any imaging with contrast dye", reason: "Documented contrast/iodine allergy — pre-medicate if contrast necessary" });
+    }
+    if (allergy.includes("latex")) {
+      actions.push({ action: "PREPARE_EQUIPMENT", priority: "urgent", description: "Use LATEX-FREE equipment and gloves throughout", reason: "Documented latex allergy — risk of anaphylaxis" });
+    }
+    if (allergy.includes("morphine") || allergy.includes("codeine") || allergy.includes("opioid")) {
+      actions.push({ action: "DO_NOT_GIVE", priority: "immediate", description: "DO NOT administer Morphine, Codeine, or Opioids", reason: "Documented opioid allergy — use alternative analgesic" });
+    }
+    if (allergy.includes("cephalosporin")) {
+      actions.push({ action: "DO_NOT_GIVE", priority: "immediate", description: "DO NOT administer Cephalosporins", reason: "Documented cephalosporin allergy" });
+    }
+  }
+
+  const hasWarfarin = medsLower.some(m => m.includes("warfarin") || m.includes("coumadin"));
+  const hasAmiodarone = medsLower.some(m => m.includes("amiodarone"));
+  const hasInsulin = medsLower.some(m => m.includes("insulin"));
+  const hasDigoxin = medsLower.some(m => m.includes("digoxin"));
+  const hasBetaBlocker = medsLower.some(m => ["metoprolol", "atenolol", "bisoprolol", "carvedilol", "propranolol"].some(bb => m.includes(bb)));
+  const hasMetformin = medsLower.some(m => m.includes("metformin"));
+
+  if (hasWarfarin) {
+    actions.push({ action: "MONITOR", priority: "urgent", description: "Check INR before any invasive procedure or new prescription", reason: "Patient on Warfarin — significant bleeding risk" });
+    if (hasAmiodarone) {
+      actions.push({ action: "URGENT_REVIEW", priority: "immediate", description: "CRITICAL: Warfarin + Amiodarone interaction — check INR immediately", reason: "Amiodarone potentiates warfarin by 30-50% — life-threatening bleeding risk" });
+    }
+  }
+
+  if (hasInsulin) {
+    actions.push({ action: "MONITOR", priority: "urgent", description: "Check blood glucose before any procedure or new medications", reason: "Patient on Insulin — hypoglycemia risk especially under fasting/stress" });
+  }
+
+  if (hasDigoxin) {
+    actions.push({ action: "MONITOR", priority: "urgent", description: "Check electrolytes (K⁺, Mg²⁺) before treatment", reason: "Patient on Digoxin — electrolyte imbalance increases toxicity risk" });
+  }
+
+  if (hasBetaBlocker) {
+    actions.push({ action: "HOLD_MEDICATION", priority: "urgent", description: "Do NOT give IV Verapamil or IV Diltiazem", reason: "Fatal bradycardia and complete heart block risk with concurrent beta-blocker" });
+  }
+
+  if (hasMetformin) {
+    actions.push({ action: "HOLD_MEDICATION", priority: "urgent", description: "HOLD Metformin 48h before any contrast imaging procedure", reason: "Contrast-induced nephropathy + metformin = lactic acidosis risk" });
+  }
+
+  if (riskLevel === "critical") {
+    actions.push({ action: "ALERT_FAMILY", priority: "urgent", description: "Notify emergency contact immediately", reason: "Patient is classified CRITICAL RISK" });
+    actions.push({ action: "URGENT_REVIEW", priority: "immediate", description: "Senior physician review required before any treatment decision", reason: "Critical risk score — complex multi-morbidity requires senior oversight" });
+  }
+
+  if (condLower.some(c => c.includes("kidney") || c.includes("ckd") || c.includes("renal"))) {
+    actions.push({ action: "MONITOR", priority: "urgent", description: "Adjust all renally-cleared medications for current GFR", reason: "Chronic kidney disease — standard doses may accumulate and cause toxicity" });
+  }
+
+  if (condLower.some(c => c.includes("liver") || c.includes("cirrhosis") || c.includes("hepatic"))) {
+    actions.push({ action: "MONITOR", priority: "urgent", description: "Avoid hepatotoxic or hepatically-metabolized medications at standard doses", reason: "Liver disease — impaired drug metabolism increases toxicity risk" });
+  }
+
+  const seen = new Set<string>();
+  return actions.filter(a => {
+    if (seen.has(a.description)) return false;
+    seen.add(a.description);
+    return true;
+  }).slice(0, 8);
 }

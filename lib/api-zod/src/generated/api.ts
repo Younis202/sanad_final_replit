@@ -280,6 +280,8 @@ export const EmergencyLookupResponse = zod.object({
   id: zod.number(),
   nationalId: zod.string(),
   fullName: zod.string(),
+  age: zod.number().optional(),
+  gender: zod.string().optional(),
   bloodType: zod.string(),
   allergies: zod.array(zod.string()),
   chronicConditions: zod.array(zod.string()),
@@ -287,7 +289,25 @@ export const EmergencyLookupResponse = zod.object({
   emergencyContact: zod.string().optional(),
   emergencyPhone: zod.string().optional(),
   riskLevel: zod.enum(["low", "medium", "high", "critical"]),
+  riskScore: zod.number().optional(),
   criticalAlerts: zod.array(zod.string()),
+  clinicalActions: zod
+    .array(
+      zod.object({
+        action: zod.enum([
+          "DO_NOT_GIVE",
+          "MONITOR",
+          "URGENT_REVIEW",
+          "ALERT_FAMILY",
+          "PREPARE_EQUIPMENT",
+          "HOLD_MEDICATION",
+        ]),
+        priority: zod.enum(["immediate", "urgent", "standard"]),
+        description: zod.string(),
+        reason: zod.string(),
+      }),
+    )
+    .optional(),
 });
 
 /**
@@ -466,6 +486,55 @@ export const CheckDrugInteractionResponse = zod.object({
       recommendation: zod.string(),
     }),
   ),
+});
+
+/**
+ * @summary Get AI-generated clinical predictions for a patient
+ */
+export const GetPatientPredictionsParams = zod.object({
+  patientId: zod.coerce.number(),
+});
+
+export const GetPatientPredictionsResponse = zod.object({
+  patientId: zod.number(),
+  predictions: zod.array(
+    zod.object({
+      type: zod.enum([
+        "deterioration",
+        "pattern",
+        "risk_escalation",
+        "adherence",
+        "complication",
+      ]),
+      severity: zod.enum(["low", "moderate", "high", "critical"]),
+      title: zod.string(),
+      description: zod.string(),
+      recommendation: zod.string(),
+      confidence: zod.enum(["low", "moderate", "high"]),
+    }),
+  ),
+});
+
+/**
+ * @summary Mark an alert as read
+ */
+export const MarkAlertReadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const MarkAlertReadResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary Mark all alerts as read for a patient
+ */
+export const MarkAllAlertsReadBody = zod.object({
+  patientId: zod.number(),
+});
+
+export const MarkAllAlertsReadResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**

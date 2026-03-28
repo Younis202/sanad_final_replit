@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import {
   Search, AlertTriangle, Droplet, Pill, FileWarning,
-  PhoneCall, Activity, ChevronRight, Clock, Zap
+  PhoneCall, Activity, ChevronRight, Clock, Zap,
+  ShieldAlert, Ban, Eye, UserCheck, Wrench, PauseCircle, Brain
 } from "lucide-react";
 import { Layout } from "@/components/layout";
 import {
@@ -9,6 +10,28 @@ import {
   Input, Button, Badge, PageHeader, StatusDot, DataLabel
 } from "@/components/shared";
 import { useEmergencyLookup } from "@workspace/api-client-react";
+
+type ClinicalAction = {
+  action: "DO_NOT_GIVE" | "MONITOR" | "URGENT_REVIEW" | "ALERT_FAMILY" | "PREPARE_EQUIPMENT" | "HOLD_MEDICATION";
+  priority: "immediate" | "urgent" | "standard";
+  description: string;
+  reason: string;
+};
+
+const actionConfig: Record<ClinicalAction["action"], { icon: React.ElementType; color: string; bg: string; border: string; label: string }> = {
+  DO_NOT_GIVE: { icon: Ban, color: "text-red-700", bg: "bg-red-50", border: "border-red-200", label: "DO NOT GIVE" },
+  HOLD_MEDICATION: { icon: PauseCircle, color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", label: "HOLD" },
+  URGENT_REVIEW: { icon: Brain, color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200", label: "URGENT REVIEW" },
+  ALERT_FAMILY: { icon: PhoneCall, color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", label: "ALERT FAMILY" },
+  MONITOR: { icon: Eye, color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", label: "MONITOR" },
+  PREPARE_EQUIPMENT: { icon: Wrench, color: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200", label: "PREPARE" },
+};
+
+const priorityBadge: Record<ClinicalAction["priority"], string> = {
+  immediate: "bg-red-600 text-white",
+  urgent: "bg-amber-500 text-white",
+  standard: "bg-secondary text-muted-foreground",
+};
 
 export default function EmergencyPage() {
   const [nationalId, setNationalId] = useState("");
@@ -24,9 +47,12 @@ export default function EmergencyPage() {
     if (nationalId.trim()) setSubmittedId(nationalId.trim());
   };
 
+  const clinicalActions = (patient as any)?.clinicalActions as ClinicalAction[] | undefined;
+  const immediateActions = clinicalActions?.filter(a => a.priority === "immediate") ?? [];
+  const urgentActions = clinicalActions?.filter(a => a.priority !== "immediate") ?? [];
+
   return (
     <Layout role="emergency">
-      {/* Emergency Mode Banner — like the red badge in screenshot */}
       <div className="flex items-center gap-2 mb-5">
         <div className="flex items-center gap-2 bg-red-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-full uppercase tracking-widest">
           <Zap className="w-3 h-3" />
@@ -39,7 +65,6 @@ export default function EmergencyPage() {
         subtitle="Instant access to life-critical patient information. Enter National ID to retrieve records."
       />
 
-      {/* Search */}
       <Card className="mb-6 border-2 border-red-100">
         <CardBody className="p-4">
           <form onSubmit={handleSearch} className="flex items-center gap-3">
@@ -86,7 +111,45 @@ export default function EmergencyPage() {
 
       {patient && (
         <div className="space-y-4">
-          {/* Critical Alerts — big red rounded card like in the screenshots */}
+          {/* IMMEDIATE ACTIONS — highest priority, shown first */}
+          {immediateActions.length > 0 && (
+            <div className="border-2 border-red-500 rounded-3xl overflow-hidden">
+              <div className="bg-red-600 px-5 py-3 flex items-center gap-3">
+                <ShieldAlert className="w-5 h-5 text-white" />
+                <span className="text-white font-bold text-sm uppercase tracking-widest">
+                  ⚠ IMMEDIATE CLINICAL ACTIONS REQUIRED
+                </span>
+                <span className="ml-auto bg-white/20 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+                  {immediateActions.length} Action{immediateActions.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="p-3 space-y-2 bg-red-50">
+                {immediateActions.map((action, i) => {
+                  const cfg = actionConfig[action.action];
+                  const Icon = cfg.icon;
+                  return (
+                    <div key={i} className={`flex items-start gap-3 p-4 ${cfg.bg} border ${cfg.border} rounded-2xl`}>
+                      <div className={`w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0`}>
+                        <Icon className={`w-4.5 h-4.5 ${cfg.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${priorityBadge[action.priority]}`}>
+                            {action.priority.toUpperCase()}
+                          </span>
+                          <span className={`text-xs font-bold ${cfg.color} uppercase tracking-wide`}>{cfg.label}</span>
+                        </div>
+                        <p className={`font-bold text-sm ${cfg.color}`}>{action.description}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{action.reason}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Critical Alerts */}
           {patient.criticalAlerts.length > 0 && (
             <Card className="bg-red-600 border-red-600 text-white">
               <CardBody className="flex items-start gap-4 p-5">
@@ -95,9 +158,7 @@ export default function EmergencyPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1">Critical Medical Alert</p>
-                  <p className="text-lg font-bold mb-2">
-                    {patient.criticalAlerts[0]}
-                  </p>
+                  <p className="text-lg font-bold mb-2">{patient.criticalAlerts[0]}</p>
                   {patient.criticalAlerts.slice(1).map((a, i) => (
                     <p key={i} className="text-sm text-white/80 flex items-center gap-1.5">
                       <ChevronRight className="w-3 h-3" /> {a}
@@ -110,7 +171,6 @@ export default function EmergencyPage() {
 
           {/* Patient Identity Row */}
           <div className="grid grid-cols-12 gap-4">
-            {/* Main Identity */}
             <Card className="col-span-7 p-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -127,6 +187,12 @@ export default function EmergencyPage() {
                   >
                     {patient.riskLevel?.toUpperCase()} RISK
                   </Badge>
+                  {(patient as any).riskScore !== undefined && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-2xl font-bold text-foreground">{(patient as any).riskScore}</span>
+                      <span className="text-xs text-muted-foreground">/100</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Clock className="w-3 h-3" />
                     <span>Live</span>
@@ -135,11 +201,10 @@ export default function EmergencyPage() {
                 </div>
               </div>
 
-              {/* Info grid inside card — like the screenshot's data cells */}
               <div className="grid grid-cols-3 gap-3 mt-5">
                 <div className="bg-secondary rounded-2xl p-3.5">
                   <DataLabel label="Age / Sex">
-                    <p className="text-lg font-bold text-foreground">{patient.age ?? "—"} <span className="text-muted-foreground font-normal text-sm">{patient.gender?.charAt(0)}</span></p>
+                    <p className="text-lg font-bold text-foreground">{patient.age ?? "—"} <span className="text-muted-foreground font-normal text-sm">{patient.gender?.charAt(0).toUpperCase()}</span></p>
                   </DataLabel>
                 </div>
                 <div className="bg-secondary rounded-2xl p-3.5 col-span-2">
@@ -155,7 +220,6 @@ export default function EmergencyPage() {
               </div>
             </Card>
 
-            {/* Blood Type — large prominent */}
             <Card className="col-span-2 bg-red-50 border-red-100">
               <CardBody className="flex flex-col items-center justify-center py-8">
                 <Droplet className="w-7 h-7 text-red-400 mb-2" />
@@ -167,7 +231,6 @@ export default function EmergencyPage() {
               </CardBody>
             </Card>
 
-            {/* Quick PhoneCall */}
             <Card className="col-span-3">
               <CardBody className="flex flex-col justify-center h-full p-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -184,9 +247,44 @@ export default function EmergencyPage() {
             </Card>
           </div>
 
+          {/* Urgent (non-immediate) Clinical Actions */}
+          {urgentActions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-amber-600" />
+                  <CardTitle>Clinical Guidance</CardTitle>
+                </div>
+                <Badge variant="warning">{urgentActions.length} notes</Badge>
+              </CardHeader>
+              <CardBody>
+                <div className="space-y-2">
+                  {urgentActions.map((action, i) => {
+                    const cfg = actionConfig[action.action];
+                    const Icon = cfg.icon;
+                    return (
+                      <div key={i} className={`flex items-start gap-3 p-3.5 ${cfg.bg} border ${cfg.border} rounded-2xl`}>
+                        <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shrink-0">
+                          <Icon className={`w-4 h-4 ${cfg.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={`text-[10px] font-bold uppercase tracking-wide ${cfg.color}`}>{cfg.label}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${priorityBadge[action.priority]}`}>{action.priority}</span>
+                          </div>
+                          <p className="font-semibold text-sm text-foreground">{action.description}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{action.reason}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
           {/* Clinical Data */}
           <div className="grid grid-cols-3 gap-4">
-            {/* Allergies */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -209,7 +307,6 @@ export default function EmergencyPage() {
               </CardBody>
             </Card>
 
-            {/* Conditions */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -232,7 +329,6 @@ export default function EmergencyPage() {
               </CardBody>
             </Card>
 
-            {/* Medications */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
