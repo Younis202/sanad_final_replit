@@ -1,149 +1,143 @@
 import React from "react";
 import { Link } from "wouter";
-import { ShieldAlert, HeartPulse, User, Building2, ChevronRight, Globe, Shield } from "lucide-react";
+import { ShieldAlert, HeartPulse, User, Building2, ChevronRight, Shield, Cpu, Globe } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Top bar */}
-      <div className="h-1 bg-gradient-to-r from-primary via-primary/70 to-accent" />
-      <header className="h-14 border-b border-border bg-card flex items-center justify-between px-8">
+      {/* Header */}
+      <header className="h-14 border-b border-border bg-card flex items-center justify-between px-10">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
             <img
               src={`${import.meta.env.BASE_URL}images/sanad-logo.png`}
               alt="Sanad"
-              className="w-4 h-4 object-contain brightness-0 invert"
+              className="w-4.5 h-4.5 brightness-0 invert"
             />
           </div>
-          <span className="font-bold text-base tracking-wide text-primary">SANAD</span>
-          <span className="text-border mx-2">|</span>
-          <span className="text-sm text-muted-foreground">Saudi National Health Infrastructure</span>
+          <div>
+            <span className="font-bold text-foreground text-sm tracking-wide">Sanad</span>
+            <span className="text-muted-foreground text-xs ml-2 font-medium">HEALTH INTELLIGENCE</span>
+          </div>
         </div>
+        <nav className="flex items-center gap-1">
+          {["Dashboard", "Analytics", "Population", "Resources"].map((t, i) => (
+            <span key={t} className={`px-4 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-all ${i === 0 ? "text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`}>
+              {t}
+            </span>
+          ))}
+        </nav>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Globe className="w-3.5 h-3.5" />
-          <span>Ministry of Health — Kingdom of Saudi Arabia</span>
+          <span className="font-medium">Ministry of Health — KSA</span>
         </div>
       </header>
 
-      {/* Hero */}
-      <div className="flex-1 flex flex-col">
-        <div className="max-w-6xl mx-auto w-full px-8 py-16 flex-1 flex flex-col">
-          {/* Title block */}
-          <div className="mb-14">
-            <div className="inline-flex items-center gap-2 bg-primary/8 border border-primary/15 rounded-full px-3 py-1.5 text-xs font-semibold text-primary mb-6">
-              <Shield className="w-3 h-3" />
-              Secure Government Infrastructure — v2.4.1
-            </div>
-            <h1 className="text-5xl font-bold text-foreground tracking-tight leading-tight mb-4">
-              National Digital Health<br />
-              <span className="text-primary">Infrastructure Platform</span>
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-              Sanad is Saudi Arabia's unified national health data backbone — connecting 450+ hospitals,
-              34 million citizen records, and AI-powered clinical decision support across the entire Kingdom.
-            </p>
+      <div className="flex-1 max-w-6xl mx-auto w-full px-10 py-14 flex flex-col">
+        {/* Hero */}
+        <div className="mb-12">
+          <div className="inline-flex items-center gap-2 bg-primary/8 border border-primary/20 rounded-full px-3.5 py-1.5 text-xs font-bold text-primary mb-6 uppercase tracking-widest">
+            <Shield className="w-3 h-3" />
+            Secure Government Infrastructure — v2.4.1
           </div>
+          <h1 className="text-[52px] font-bold text-foreground tracking-tight leading-[1.1] mb-5">
+            National Digital Health<br />
+            <span className="text-primary">Infrastructure Platform</span>
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
+            Sanad is Saudi Arabia's unified national health data backbone — connecting <strong className="text-foreground">450+ hospitals</strong>,{" "}
+            <strong className="text-foreground">34 million citizen records</strong>, and AI-powered clinical decision support across the entire Kingdom.
+          </p>
+        </div>
 
-          {/* Module cards */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-12">
-            <ModuleCard
-              href="/emergency"
-              icon={ShieldAlert}
-              label="Emergency Services"
-              description="Instant critical patient data for first responders. Blood type, allergies, medications in under 1 second."
-              accent="border-red-200 hover:border-red-400"
-              iconBg="bg-red-50"
-              iconColor="text-red-600"
-              tag="First Responders"
-              tagColor="bg-red-50 text-red-600 border-red-200"
-            />
-            <ModuleCard
-              href="/doctor"
-              icon={HeartPulse}
-              label="Physician Portal"
-              description="Full patient history, lab results, AI-assisted drug interaction checking, and e-prescribing."
-              accent="border-blue-200 hover:border-blue-400"
-              iconBg="bg-blue-50"
-              iconColor="text-blue-700"
-              tag="Clinical Staff"
-              tagColor="bg-blue-50 text-blue-700 border-blue-200"
-            />
-            <ModuleCard
-              href="/citizen"
-              icon={User}
-              label="Citizen Portal"
-              description="Secure access to personal medical records, prescriptions, lab results, and visit history."
-              accent="border-amber-200 hover:border-amber-400"
-              iconBg="bg-amber-50"
-              iconColor="text-amber-700"
-              tag="Citizens & Residents"
-              tagColor="bg-amber-50 text-amber-700 border-amber-200"
-            />
-            <ModuleCard
-              href="/admin"
-              icon={Building2}
-              label="Ministry Analytics"
-              description="Population health intelligence, regional breakdowns, and national system oversight dashboards."
-              accent="border-emerald-200 hover:border-emerald-400"
-              iconBg="bg-emerald-50"
-              iconColor="text-emerald-700"
-              tag="Ministry Officials"
-              tagColor="bg-emerald-50 text-emerald-700 border-emerald-200"
-            />
-          </div>
+        {/* Role Cards */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-12">
+          <RoleCard
+            href="/emergency"
+            icon={ShieldAlert}
+            label="Emergency Services"
+            description="Instant critical patient data for first responders. Blood type, allergies, medications under 1 second."
+            iconBg="bg-red-600"
+            borderHover="hover:border-red-400 hover:shadow-red-100"
+            tag="First Responders"
+            tagStyle="bg-red-50 text-red-600"
+            linkColor="text-red-600"
+          />
+          <RoleCard
+            href="/doctor"
+            icon={HeartPulse}
+            label="Physician Portal"
+            description="Complete patient history, AI-assisted drug interaction checking, risk scoring, and e-prescribing."
+            iconBg="bg-primary"
+            borderHover="hover:border-primary/50 hover:shadow-primary/10"
+            tag="Clinical Staff"
+            tagStyle="bg-primary/10 text-primary"
+            linkColor="text-primary"
+          />
+          <RoleCard
+            href="/citizen"
+            icon={User}
+            label="Citizen Portal"
+            description="Secure access to personal medical records, prescriptions, lab results, and full visit history."
+            iconBg="bg-amber-500"
+            borderHover="hover:border-amber-400 hover:shadow-amber-100"
+            tag="Citizens & Residents"
+            tagStyle="bg-amber-50 text-amber-700"
+            linkColor="text-amber-600"
+          />
+          <RoleCard
+            href="/admin"
+            icon={Building2}
+            label="Ministry Analytics"
+            description="Population health intelligence, regional breakdowns, and national system oversight command center."
+            iconBg="bg-emerald-600"
+            borderHover="hover:border-emerald-400 hover:shadow-emerald-100"
+            tag="Ministry Officials"
+            tagStyle="bg-emerald-50 text-emerald-700"
+            linkColor="text-emerald-600"
+          />
+        </div>
 
-          {/* Stats footer */}
-          <div className="grid grid-cols-4 gap-0 border border-border rounded-lg bg-card overflow-hidden">
-            {[
-              { value: "34.2M+", label: "Registered Citizens" },
-              { value: "450+", label: "Connected Hospitals" },
-              { value: "99.99%", label: "System Uptime SLA" },
-              { value: "50M SAR", label: "National Investment" },
-            ].map((stat, i) => (
-              <div key={i} className={`p-6 text-center ${i < 3 ? "border-r border-border" : ""}`}>
-                <p className="text-2xl font-bold text-primary tabular-nums mb-1">{stat.value}</p>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+        {/* Stats Row */}
+        <div className="grid grid-cols-4 gap-0 bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+          {[
+            { icon: User, value: "34.2M+", label: "Registered Citizens" },
+            { icon: Building2, value: "450+", label: "Connected Hospitals" },
+            { icon: Cpu, value: "99.99%", label: "System Uptime SLA" },
+            { icon: Shield, value: "50M SAR", label: "National Investment" },
+          ].map(({ icon: Icon, value, label }, i) => (
+            <div key={label} className={`flex flex-col items-center justify-center py-7 text-center ${i < 3 ? "border-r border-border" : ""}`}>
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                <Icon className="w-4.5 h-4.5 text-primary" />
               </div>
-            ))}
-          </div>
+              <p className="text-2xl font-bold text-foreground tabular-nums mb-0.5">{value}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-card px-8 py-4 flex items-center justify-between">
+      <footer className="border-t border-border bg-card px-10 py-4 flex items-center justify-between">
         <p className="text-xs text-muted-foreground">© 2026 Ministry of Health — Kingdom of Saudi Arabia. All rights reserved.</p>
-        <p className="text-xs text-muted-foreground font-mono">SANAD Platform v2.4.1 · Classified: RESTRICTED</p>
+        <p className="text-xs text-muted-foreground font-mono">SANAD v2.4.1 · RESTRICTED</p>
       </footer>
     </div>
   );
 }
 
-function ModuleCard({
-  href, icon: Icon, label, description, accent, iconBg, iconColor, tag, tagColor
-}: {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  description: string;
-  accent: string;
-  iconBg: string;
-  iconColor: string;
-  tag: string;
-  tagColor: string;
-}) {
+function RoleCard({ href, icon: Icon, label, description, iconBg, borderHover, tag, tagStyle, linkColor }: any) {
   return (
     <Link href={href}>
-      <div className={`group relative flex flex-col h-full p-5 bg-card border-2 rounded-lg transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${accent}`}>
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
-            <Icon className={`w-5 h-5 ${iconColor}`} />
+      <div className={`group relative flex flex-col h-full p-5 bg-card border-2 border-border rounded-2xl cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${borderHover}`}>
+        <div className="flex items-start justify-between mb-5">
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm ${iconBg}`}>
+            <Icon className="w-5 h-5 text-white" />
           </div>
-          <span className={`text-xs font-semibold border rounded-full px-2 py-0.5 ${tagColor}`}>{tag}</span>
+          <span className={`text-[10px] font-bold rounded-full px-2.5 py-1 uppercase tracking-wide ${tagStyle}`}>{tag}</span>
         </div>
-        <h3 className="text-base font-bold text-foreground mb-2 group-hover:text-primary transition-colors">{label}</h3>
+        <h3 className="text-base font-bold text-foreground mb-2">{label}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed flex-1">{description}</p>
-        <div className={`mt-4 flex items-center gap-1 text-xs font-semibold transition-colors ${iconColor}`}>
+        <div className={`mt-5 flex items-center gap-1.5 text-xs font-bold ${linkColor}`}>
           Access Portal <ChevronRight className="w-3.5 h-3.5" />
         </div>
       </div>
